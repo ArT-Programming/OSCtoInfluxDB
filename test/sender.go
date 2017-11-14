@@ -13,7 +13,7 @@ import (
 
 // TODO: Revise the client!
 func main() {
-	ip := "localhost"
+	ip := "192.168.1.7"
 	port := 8765
 	client := osc.NewClient(ip, port)
 
