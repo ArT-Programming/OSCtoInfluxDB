@@ -16,20 +16,35 @@ import (
 
 const (
 	MyDB     = "TheLastTempest"
-	username = "tempest"
-	password = "tempest"
+	username = "root"
+	password = "root"
 )
 
 func main() {
+
+// Make client
+c, err := client.NewHTTPClient(client.HTTPConfig{
+    Addr: "http://localhost:8086",
+})
+if err != nil {
+    fmt.Println("Error creating InfluxDB Client: ", err.Error())
+}
+defer c.Close()
+
+q := client.NewQuery("CREATE DATABASE udp", "", "")
+if response, err := c.Query(q); err == nil && response.Error() == nil {
+    fmt.Println(response.Results)
+}
+
+
 	// Create a new HTTPClient
-	influxClient, err := client.NewHTTPClient(client.HTTPConfig{
-		Addr:     "http://lejendrone.eu:8086",
-		Username: username,
-		Password: password,
-	})
+	// Make client
+	config := client.UDPConfig{Addr: "localhost:8089"}
+	influxClient, err := client.NewUDPClient(config)
 	if err != nil {
-		log.Fatal(err)
+	    fmt.Println("Error: ", err.Error())
 	}
+	defer influxClient.Close()
 
 	addr := "0.0.0.0:8765"
 	server := &osc.Server{}
@@ -62,12 +77,10 @@ func main() {
 					osc.PrintMessage(packet.(*osc.Message))
 
 					s := strings.Split(fmt.Sprint(packet.(*osc.Message)), ",")
-					message := strings.Split(s[0], "/")
 					data := strings.Split(s[1], " ")
 
 					// Create a new point batch
 					bp, err := client.NewBatchPoints(client.BatchPointsConfig{
-						Database:  MyDB,
 						Precision: "ms",
 					})
 					if err != nil {
@@ -76,8 +89,7 @@ func main() {
 
 					// Create a point and add to batch
 					tags := map[string]string{
-						"message": message[1],
-						"address": message[2],
+						"path":s[0],
 					}
 					fields := map[string]interface{}{}
 
@@ -134,3 +146,4 @@ func main() {
 	}
 
 }
+
